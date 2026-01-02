@@ -1,0 +1,22 @@
+run:
+sudo nano /etc/systemd/system/intruder_camera.service
+
+paste this content into intruder_camera.service:
+[Unit]
+Description=IntruderNet Camera Capture
+After=network.target
+
+[Service]
+User=mircea
+WorkingDirectory=/home/mircea
+ExecStart=/usr/bin/python3 /home/mircea/Desktop/IntruderNet/capture.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+run these commands at the end:
+sudo systemctl daemon-reload
+sudo systemctl enable intruder_camera.service
+
+

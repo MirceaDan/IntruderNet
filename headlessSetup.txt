@@ -18,5 +18,5 @@ WantedBy=multi-user.target
 run these commands at the end:
 sudo systemctl daemon-reload
 sudo systemctl enable intruder_camera.service
-
-
+sudo systemctl start intruder_camera.service
+sudo systemctl status intruder_camera.service

@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import toch.quantization
+import torch.quantization
 from torchvision import transforms, datasets
-from torchvision.models import vit_b_16
+from torchvision.models import vit_b_16, ViT_B_16_Weights
 from torch.utils.data import DataLoader
 import os
 
@@ -23,7 +23,7 @@ DATA_DIR = "./dataset"
 BATCH_SIZE = 16
 LR = 1e-4
 EPOCHS = 10
-NUM_CLASSES = 3 # rabbit, misc, nothing
+NUM_CLASSES = 2 # for now rabbit, nothing future: 3rd class misc
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL_SAVE_PATH = "./vit_intruder.pth"
 
@@ -42,14 +42,16 @@ val_transforms = transforms.Compose([
 
 # --- Dataset și DataLoader ---
 train_dataset = datasets.ImageFolder(os.path.join(DATA_DIR, "train"), transform = train_transforms)
-val_dataset = datasets.ImageFolder(os.path.join(DATA_DIR, "val"), transform = train_transforms)
+val_dataset = datasets.ImageFolder(os.path.join(DATA_DIR, "validation"), transform = train_transforms)
 
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
 val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
 
 # --- Model ViT Tiny ---
-model = vit_b_16(pretrained=True)
-model.heads = nn.Linear(model.heads.in_features, NUM_CLASSES)
+weights = ViT_B_16_Weights.DEFAULT
+model = vit_b_16(weights=weights)
+in_features = model.heads.head.in_features
+model.heads.head = nn.Linear(in_features, NUM_CLASSES)
 model = model.to(DEVICE)
 
 # --- Loss și Optimizer ---

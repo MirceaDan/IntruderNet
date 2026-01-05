@@ -2,10 +2,13 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.quantization
+from PIL import Image, ImageFile
 from torchvision import transforms, datasets
 from torchvision.models import vit_b_16, ViT_B_16_Weights
 from torch.utils.data import DataLoader
 import os
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # --- Configurare ---
 DATA_DIR = "./dataset"
@@ -15,15 +18,17 @@ DATA_DIR = "./dataset"
 #        rabbit/
 #        misc/
 #        nothing/
-#    val/
+#    validation/
 #        rabbit/
 #        misc/
 #        nothing/
+# validation 10% new, 10% copied from validation
+# test is new images for model performance evaluation
 
 BATCH_SIZE = 16
 LR = 1e-4
 EPOCHS = 10
-NUM_CLASSES = 2 # for now rabbit, nothing future: 3rd class misc
+NUM_CLASSES = 3 # for now rabbit, nothing future: 3rd class misc
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL_SAVE_PATH = "./vit_intruder.pth"
 
@@ -44,8 +49,8 @@ val_transforms = transforms.Compose([
 train_dataset = datasets.ImageFolder(os.path.join(DATA_DIR, "train"), transform = train_transforms)
 val_dataset = datasets.ImageFolder(os.path.join(DATA_DIR, "validation"), transform = train_transforms)
 
-train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
-val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
+train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=0)
+val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=0)
 
 # --- Dataset Weights ---
 train_dir = os.path.join(DATA_DIR, "train")

@@ -7,7 +7,7 @@ DATASET_ROOT = "dataset"
 TRAIN_DIR = os.path.join(DATASET_ROOT, "train")
 VAL_DIR = os.path.join(DATASET_ROOT, "validation")
 
-CLASSES = ["rabbit", "nothing"]
+CLASSES = ["rabbit", "nothing", "misc"]
 SPLIT_RATIO = 0.10
 SEED = 42
 # ----------------------------------------

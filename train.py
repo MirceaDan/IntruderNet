@@ -47,6 +47,27 @@ val_dataset = datasets.ImageFolder(os.path.join(DATA_DIR, "validation"), transfo
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
 val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2)
 
+# --- Dataset Weights ---
+train_dir = os.path.join(DATA_DIR, "train")
+classes = [d for d in os.listdir(train_dir) if os.path.isdir(os.path.join(train_dir, d))]
+
+# dictionar cu count pe clasa
+class_counts = {}
+
+for cls in classes:
+    cls_path = os.path.join(train_dir, cls)
+    n_files = len([f for f in os.listdir(cls_path) if os.path.isfile(os.path.join(cls_path, f))])
+    class_counts[cls] = n_files
+
+print(class_counts)
+
+counts = torch.tensor([class_counts[cls] for cls in classes], dtype=torch.float)
+
+weights = 1.0 / counts
+class_weights = weights / weights.sum()
+
+print(class_weights)
+
 # --- Model ViT Tiny ---
 weights = ViT_B_16_Weights.DEFAULT
 model = vit_b_16(weights=weights)
@@ -54,8 +75,8 @@ in_features = model.heads.head.in_features
 model.heads.head = nn.Linear(in_features, NUM_CLASSES)
 model = model.to(DEVICE)
 
-# --- Loss și Optimizer ---
-criterion = nn.CrossEntropyLoss()
+# --- Weighted Loss și Optimizer ---
+criterion = torch.nn.CrossEntropyLoss(weight = class_weights.to(DEVICE))
 optimizer = optim.AdamW(model.parameters(), lr=LR)
 
 # --- Training loop ---

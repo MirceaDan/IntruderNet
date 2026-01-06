@@ -27,7 +27,7 @@ var/
 
 # PyTorch / model checkpoints
 *.pt
-*.pth
+#*.pth
 *.ckpt
 *.weights
 

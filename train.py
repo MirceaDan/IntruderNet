@@ -1,3 +1,4 @@
+import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -5,6 +6,7 @@ import torch.quantization
 from PIL import Image, ImageFile
 from torchvision import transforms, datasets
 from torchvision.models import vit_b_16, ViT_B_16_Weights
+from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader
 import os
 
@@ -18,31 +20,41 @@ DATA_DIR = "./dataset"
 #        rabbit/
 #        misc/
 #        nothing/
-#    validation/
+#    val/
 #        rabbit/
 #        misc/
 #        nothing/
-# validation 10% new, 10% copied from validation
-# test is new images for model performance evaluation
 
 BATCH_SIZE = 16
 LR = 1e-4
 EPOCHS = 10
 NUM_CLASSES = 3 # for now rabbit, nothing future: 3rd class misc
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-MODEL_SAVE_PATH = "./vit_intruder.pth"
+MODEL_SAVE_PATH = "./model/vit_intruder.pth"
 
 # --- Augmentări și transformări ---
 train_transforms = transforms.Compose([
-    transforms.Resize((224, 224)),
+    transforms.Resize(256),
+    transforms.RandomResizedCrop(224, scale=(0.9, 1.0)),
     transforms.RandomHorizontalFlip(),
+    transforms.RandomRotation(5),
     transforms.ColorJitter(brightness=0.2, contrast=0.2),
+    transforms.GaussianBlur(3, sigma=(0.1, 1.0)),
     transforms.ToTensor(),
+    transforms.Normalize(
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+    )
 ])
 
 val_transforms = transforms.Compose([
-    transforms.Resize((224,224)),
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
     transforms.ToTensor(),
+    transforms.Normalize(
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+    )
 ])
 
 # --- Dataset și DataLoader ---
@@ -86,6 +98,7 @@ optimizer = optim.AdamW(model.parameters(), lr=LR)
 
 # --- Training loop ---
 for epoch in range(EPOCHS) :
+    start_time = time.time()
     model.train()
     running_loss = 0.0
     correct = 0
@@ -124,10 +137,13 @@ for epoch in range(EPOCHS) :
 
     val_loss /= val_total
     val_acc = val_correct / val_total
+    
+    epoch_time = time.time() - start_time
 
     print(f"Epoch {epoch+1}/{EPOCHS} | "
           f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | "
-          f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
+          f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}" | "
+          f"{epoch_time/60:.2f} minutes")
     
 # --- Quantizare pentru 8 biti ---
 model.cpu()
@@ -138,14 +154,14 @@ torch.quantization.prepare(model, inplace=True)
 
 # --- use some images from validation for calibration
 print("Running calibraiton for quantization...")
-with torch.no_grade():
+with torch.no_grad():
     for i, (images, labels) in enumerate(val_loader):
         model(images) # forward pass for calibration
         if i >= 10: # 10 batches enough for quantization
             break
 
 # convert to 8 bit
-toch.quantization.convert(model, inplace=True)
+torch.quantization.convert(model, inplace=True)
 print("8-bit Quantization compelte")
 
 

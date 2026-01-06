@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.quantization
-from PIL import Image, ImageFile
+from PIL import ImageFile
 from torchvision import transforms, datasets
 from torchvision.models import vit_b_16, ViT_B_16_Weights
 from torchvision.datasets import ImageFolder
@@ -20,7 +20,7 @@ DATA_DIR = "./dataset"
 #        rabbit/
 #        misc/
 #        nothing/
-#    val/
+#    test/
 #        rabbit/
 #        misc/
 #        nothing/
@@ -47,7 +47,7 @@ train_transforms = transforms.Compose([
     )
 ])
 
-val_transforms = transforms.Compose([
+test_transforms = transforms.Compose([
     transforms.Resize(256),
     transforms.CenterCrop(224),
     transforms.ToTensor(),
@@ -59,10 +59,10 @@ val_transforms = transforms.Compose([
 
 # --- Dataset și DataLoader ---
 train_dataset = datasets.ImageFolder(os.path.join(DATA_DIR, "train"), transform = train_transforms)
-val_dataset = datasets.ImageFolder(os.path.join(DATA_DIR, "validation"), transform = train_transforms)
+test_dataset = datasets.ImageFolder(os.path.join(DATA_DIR, "test"), transform = train_transforms)
 
 train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=0)
-val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=0)
+test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=0)
 
 # --- Dataset Weights ---
 train_dir = os.path.join(DATA_DIR, "train")
@@ -120,29 +120,29 @@ for epoch in range(EPOCHS) :
     train_loss = running_loss /total
     train_acc = correct / total
 
-    #Validation
+    #Test
     model.eval()
-    val_loss = 0.0
-    val_correct = 0
-    val_total = 0
+    test_loss = 0.0
+    test_correct = 0
+    test_total = 0
     with torch.no_grad():
-        for images, labels in val_loader:
+        for images, labels in test_loader:
             images, labels = images.to(DEVICE), labels.to(DEVICE)
             outputs = model(images)
             loss = criterion(outputs, labels)
-            val_loss += loss.item() * images.size(0)
+            test_loss += loss.item() * images.size(0)
             _, predicted = outputs.max(1)
-            val_total += labels.size(0)
-            val_correct += (predicted == labels).sum().item()
+            test_total += labels.size(0)
+            test_correct += (predicted == labels).sum().item()
 
-    val_loss /= val_total
-    val_acc = val_correct / val_total
+    test_loss /= test_total
+    test_acc = test_correct / test_total
     
     epoch_time = time.time() - start_time
 
     print(f"Epoch {epoch+1}/{EPOCHS} | "
           f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | "
-          f"Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}" | "
+          f"Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.4f}" | "
           f"{epoch_time/60:.2f} minutes")
     
 # --- Quantizare pentru 8 biti ---
@@ -152,10 +152,10 @@ model.eval()
 model.qconfig = torch.quantization.get_default_qconfig('qnnpack') # fbgemm pentru x86, qnnpack pentru arm
 torch.quantization.prepare(model, inplace=True)
 
-# --- use some images from validation for calibration
+# --- use some images from test for calibration
 print("Running calibraiton for quantization...")
 with torch.no_grad():
-    for i, (images, labels) in enumerate(val_loader):
+    for i, (images, labels) in enumerate(test_loader):
         model(images) # forward pass for calibration
         if i >= 10: # 10 batches enough for quantization
             break

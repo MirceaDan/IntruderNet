@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
+from torchvision.models import vit_b_16
 from collections import defaultdict
 import os
 
@@ -10,8 +11,8 @@ import os
 # =====================
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 32
-TEST_DIR = "test"
-MODEL_PATH = "vit_intruder.pth"
+VALIDATION_DIR = "./dataset/validation"
+MODEL_PATH = "./model/vit_intruder.pth"
 
 CLASS_NAMES = ["misc", "nothing", "rabbit"]
 NUM_CLASSES = len(CLASS_NAMES)
@@ -19,7 +20,7 @@ NUM_CLASSES = len(CLASS_NAMES)
 # =====================
 # TRANSFORMS (NO AUG)
 # =====================
-test_transforms = transforms.Compose([
+validation_transforms = transforms.Compose([
     transforms.Resize(256),
     transforms.CenterCrop(224),
     transforms.ToTensor(),
@@ -32,13 +33,13 @@ test_transforms = transforms.Compose([
 # =====================
 # DATASET
 # =====================
-test_dataset = datasets.ImageFolder(
-    TEST_DIR,
-    transform=test_transforms
+validation_dataset = datasets.ImageFolder(
+    VALIDATION_DIR,
+    transform=validation_transforms
 )
 
-test_loader = DataLoader(
-    test_dataset,
+validation_loader = DataLoader(
+    validation_dataset,
     batch_size=BATCH_SIZE,
     shuffle=False,
     num_workers=0
@@ -47,9 +48,19 @@ test_loader = DataLoader(
 # =====================
 # LOAD MODEL
 # =====================
-model = torch.load(MODEL_PATH, map_location=DEVICE)
+model = vit_b_16(weights=None)
+
+in_features = model.heads.head.in_features
+model.heads.head = nn.Linear(in_features, NUM_CLASSES)
+
 model.eval()
-model.to(DEVICE)
+
+model.qconfig = torch.quantization.get_default_qconfig("qnnpack")
+torch.quantization.prepare(model, inplace=True)
+torch.quantization.convert(model, inplace=True)
+
+state_dict = torch.load(MODEL_PATH, map_location="cpu")
+model.load_state_dict(state_dict)
 
 criterion = nn.CrossEntropyLoss()
 
@@ -66,7 +77,7 @@ total_loss = 0.0
 # INFERENCE LOOP
 # =====================
 with torch.no_grad():
-    for images, labels in test_loader:
+    for images, labels in validation_loader:
         images = images.to(DEVICE)
         labels = labels.to(DEVICE)
 
@@ -87,7 +98,7 @@ with torch.no_grad():
 # =====================
 # RESULTS
 # =====================
-print("\n=== TEST RESULTS ===")
+print("\n=== VALIDATION RESULTS ===")
 print(f"Overall Accuracy: {total_correct / total_samples:.4f}")
 print(f"Average Loss: {total_loss / total_samples:.4f}\n")
 

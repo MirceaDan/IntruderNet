@@ -97,6 +97,7 @@ criterion = torch.nn.CrossEntropyLoss(weight = class_weights.to(DEVICE))
 optimizer = optim.AdamW(model.parameters(), lr=LR)
 
 # --- Training loop ---
+print("--- TRAINING STARTED ---")
 for epoch in range(EPOCHS) :
     start_time = time.time()
     model.train()
@@ -144,6 +145,7 @@ for epoch in range(EPOCHS) :
           f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f} | "
           f"Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.4f}" | "
           f"{epoch_time/60:.2f} minutes")
+print("--- TRAINING ENDED ---")
     
 # --- Quantizare pentru 8 biti ---
 model.cpu()

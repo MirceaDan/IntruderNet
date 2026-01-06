@@ -1,3 +1,4 @@
+# --- test camera able to capture image ---
 from picamera2 import Picamera2
 import time
 

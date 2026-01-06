@@ -1,3 +1,4 @@
+# --- check and remove truncated images from entire dataset (train, test, validation) --- 
 import os
 from PIL import Image, ImageFile
 

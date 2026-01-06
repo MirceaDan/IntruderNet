@@ -1,3 +1,4 @@
+# --- move 10% of training dataset into test dataset ---
 import os
 import shutil
 import random
@@ -5,7 +6,7 @@ import random
 # ---------------- CONFIG ----------------
 DATASET_ROOT = "dataset"
 TRAIN_DIR = os.path.join(DATASET_ROOT, "train")
-VAL_DIR = os.path.join(DATASET_ROOT, "validation")
+TEST_DIR = os.path.join(DATASET_ROOT, "test")
 
 CLASSES = ["rabbit", "nothing", "misc"]
 SPLIT_RATIO = 0.10
@@ -21,9 +22,9 @@ def ensure_dir(path):
 
 def move_split(class_name):
     train_class_dir = os.path.join(TRAIN_DIR, class_name)
-    val_class_dir = os.path.join(VAL_DIR, class_name)
+    test_class_dir = os.path.join(TEST_DIR, class_name)
 
-    ensure_dir(val_class_dir)
+    ensure_dir(test_class_dir)
 
     files = [
         f for f in os.listdir(train_class_dir)
@@ -37,11 +38,11 @@ def move_split(class_name):
 
     for fname in selected:
         src = os.path.join(train_class_dir, fname)
-        dst = os.path.join(val_class_dir, fname)
+        dst = os.path.join(test_class_dir, fname)
 
         shutil.move(src, dst)
 
-    print(f"[{class_name}] moved {n_move}/{n_total} files to validation")
+    print(f"[{class_name}] moved {n_move}/{n_total} files to test")
 
 
 def main():

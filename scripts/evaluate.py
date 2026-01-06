@@ -1,3 +1,6 @@
+# --- model evaluation script ---
+# --- vit_intruder.pth -> x86 ---
+# --- vit_intruder_q.pth -> arm ---
 import torch
 import torch.nn as nn
 from torchvision import datasets, transforms
